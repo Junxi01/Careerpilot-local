@@ -1,0 +1,10 @@
+## docker-compose.yml (placeholder)
+##
+## This file will be filled in as we wire up:
+## - MySQL
+## - Ktor backend
+## - Vite frontend
+##
+## Keeping it as a placeholder for now to avoid implying
+## completed business logic or infrastructure decisions.
+services: {}

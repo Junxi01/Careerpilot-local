@@ -1,0 +1,2 @@
+-- CareerPilot Local (placeholder schema)
+-- Add tables once domain model is finalized.

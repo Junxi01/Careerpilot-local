@@ -1,0 +1,2 @@
+-- CareerPilot Local (placeholder seed)
+-- Add optional dev seed data here.
