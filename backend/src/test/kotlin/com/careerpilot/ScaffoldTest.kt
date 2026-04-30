@@ -10,11 +10,11 @@ import kotlin.test.assertTrue
 
 class ScaffoldTest {
     @Test
-    fun `scaffold endpoint responds`() = testApplication {
+    fun `health endpoint returns ok`() = testApplication {
         application { module() }
-        val resp = client.get("/api/scaffold")
+        val resp = client.get("/health")
         assertEquals(HttpStatusCode.OK, resp.status)
-        assertTrue(resp.bodyAsText().contains("careerpilot-backend"))
+        assertTrue(resp.bodyAsText().contains("\"status\":\"ok\""))
     }
 }
 

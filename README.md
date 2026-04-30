@@ -10,9 +10,24 @@ The goal is a local app where users configure target companies + public career p
 
 - **Backend**: Kotlin + Ktor (Gradle)
 - **Frontend**: React + TypeScript + Vite
-- **Database**: MySQL (planned)
+- **Database**: MySQL 8.0 (Docker Compose; schema from `database/schema.sql`)
 - **Automation**: Python scripts (planned)
-- **Deployment**: Docker Compose (placeholder)
+- **Deployment**: Docker Compose (**MySQL service** enabled; backend/frontend wiring later)
+
+### MySQL via Docker Compose
+
+```bash
+cd careerpilot-local
+cp .env.example .env
+docker compose up -d
+docker compose ps
+```
+
+Verify tables (optional; matches default `.env.example` credentials):
+
+```bash
+docker compose exec mysql mysql -u careerpilot -pcareerpilot_password careerpilot -e "SHOW TABLES;"
+```
 
 ### Local development goals
 

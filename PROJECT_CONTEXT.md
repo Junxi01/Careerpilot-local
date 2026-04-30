@@ -26,7 +26,7 @@ Self-hosted、本地优先的 **AI 求职助手**：用户配置目标公司、*
 | 前端 | React 18 + TypeScript + Vite 5 | `frontend/package.json`、`frontend/tsconfig.json`、`frontend/vite.config.ts` |
 | 数据库 | **计划** MySQL | `database/schema.sql` / `seed.sql` 仍为占位；未接业务表 |
 | 脚本 | **计划** Python | `scripts/requirements.txt` 占位；自动化待实现 |
-| 部署 | **计划** Docker Compose | `docker-compose.yml` 当前为 **空 `services: {}` 占位**，未串联服务 |
+| 部署 | Docker Compose（阶段 1） | **`mysql:8.0` 服务**：持久卷、healthcheck、首次初始化挂载 `database/schema.sql`。后端/前端尚未加入 Compose。 |
 | 密钥 | `.env`（不提交） | 模板见 `.env.example` |
 
 **Node 提示**：本前端为 **Vite 5**，一般 **Node 18+** 即可；若改用官方最新 `create-vite` 脚手架，可能要求更高 Node 版本，以本机 `node -v` 为准。
@@ -51,22 +51,35 @@ Self-hosted、本地优先的 **AI 求职助手**：用户配置目标公司、*
 - 配置：`/.env.example`（MySQL/后端端口/前端 `VITE_API_BASE_URL`/AI 占位）
 - 文档：`README.md`（产品与技术说明）、`docs/architecture.md`（简要架构意图）
 
+### Day 2 — Docker Compose + MySQL（已完成）
+
+- `docker-compose.yml`：`mysql:8.0`，命名卷 `mysql_data`，主机端口 `${DB_PORT:-3306}:3306`，**healthcheck**（`mysqladmin ping`），首次初始化挂载 `database/schema.sql` → `/docker-entrypoint-initdb.d/01-schema.sql`
+- `database/schema.sql`：占位表 **users, target_companies, job_leads, applications, interviews, ai_interview_plans, prep_tasks, reminders**（`USE \`careerpilot\``，须与 `MYSQL_DATABASE` / `DB_NAME` 一致）
+- `.env.example`：`MYSQL_ROOT_PASSWORD`, `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`, `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
+
+### Day 3 — 正式数据库 Schema（已完成）
+
+- `database/schema.sql`：9 张表（users/target_companies/job_leads/applications/interviews/ai_interview_plans/prep_tasks/reminders/app_settings），BIGINT 主键、FK、`created_at`/`updated_at`，JSON 列用于关键词/地点等
+- 索引满足需求：`target_companies.active`、`job_leads.company_id`、`job_leads.discovered_at`、`applications.status`、`prep_tasks.due_date`、`reminders.due_date`
+- `database/seed.sql`：1 个 demo 用户、2 个 target companies、3 条 job leads
+- `docs/database-schema.md`：逐表说明与字段约定
+
 ### 未实现 / 占位（业务与基础设施）
 
-- **无**真实领域模型 API（职位、投递、面试、Prep、提醒、周报等）
-- **无** MySQL 连接与迁移/ORM（`database/schema.sql` 为空占位）
-- **无** Docker Compose 服务编排（`docker-compose.yml` 占位）
+- **无**真实领域模型 API（CRUD/业务规则）
+- **无**后端连接 MySQL（JDBC/连接池/迁移；Day 4 仅读取 DB 配置，不连接）
+- **无** Compose 中的 backend / frontend 服务
 - **无** Python 抓取/定时等脚本逻辑
 - **无** AI 提供商集成与 mock 模式的具体实现（`.env.example` 仅预留变量）
 
 ### 最近一次会话交接（模板：每次收尾覆写本小节）
 
-- **日期**：（YYYY-MM-DD，本地时区）
-- **本次完成**：（3–8 条要点；可写文件路径）
-- **未完成 / 阻塞**：（可选）
-- **关键路径 / 涉及文件**：（可选）
-- **已运行验证**：（如 `gradle test` / `npm run typecheck` / 手工 URL；未跑则写「未跑」）
-- **给下一对话的一句话**：（当前最该接手的任务）
+- **日期**：2026-04-29（示例：按你本地收尾日更新）
+- **本次完成**：Day 2 — Docker Compose + MySQL：Compose、`schema.sql` 八表、`.env.example`、README 验证命令
+- **未完成 / 阻塞**：后端未接库；若修改 `MYSQL_DATABASE` 需同步改 `schema.sql` 中 `USE \`…\``  
+- **关键路径 / 涉及文件**：`docker-compose.yml`, `database/schema.sql`, `.env.example`
+- **已运行验证**：以本机 `docker compose up -d` + `SHOW TABLES` 为准（CI/Agent 环境可能无 Docker）
+- **给下一对话的一句话**：优先把 **Ktor 后端接入 MySQL**（或在 Compose 中加入 backend 服务并连 `DB_*`）。
 
 ---
 
@@ -102,16 +115,25 @@ npm run typecheck
 
 **手工看后端是否起来**（若已 `gradle run` 且端口与 `application.conf` 一致）：访问 `GET /api/scaffold`。
 
+**MySQL（Docker Compose）**：
+
+```bash
+cd careerpilot-local
+cp .env.example .env
+docker compose up -d
+docker compose exec mysql mysql -u careerpilot -pcareerpilot_password careerpilot -e "SHOW TABLES;"
+```
+
 ---
 
 ## 7. 建议的下一步任务（可按优先级推进）
 
 以下顺序可按产品节奏调整，供新对话直接 pick：
 
-1. **Docker Compose**：MySQL + backend + frontend 服务定义，挂载 `database/` 初始化 SQL，环境变量与 `.env.example` 对齐。
-2. **数据库**：在 `database/schema.sql` 设计首版表（公司配置、职位线索、投递、面试、prep 等），并决定迁移方式（Flyway / 手写 SQL / Exposed 等）。
-3. **后端**：健康检查、统一 API 响应包装、配置模块、DB 连接；首条业务 API（例如公司配置 CRUD 或 job lead 列表）。
-4. **前端**：环境变量 `VITE_API_BASE_URL`、fetch 封装、与后端类型对齐的首屏。
+1. **后端接 MySQL**：JDBC/Hikari/Exposed 或 JDBI；读 `DB_*`；健康检查 + 最小迁移策略。
+2. **Compose 扩展（可选）**：加入 `backend`（依赖 `mysql` healthy），后续再加 `frontend`。
+3. **API**：首条业务接口（如 `target_companies` 或 `job_leads` 列表）；统一 API 响应类型。
+4. **前端**：`VITE_API_BASE_URL`、fetch 封装、与后端类型对齐的首屏。
 5. **Python**：公开页拉取/解析占位 CLI，`--dry-run`，明确禁止域名列表。
 6. **AI**：抽象 `AI_MODE=mock|real`，mock 返回固定结构，real 调环境变量中的 HTTP 端点。
 
