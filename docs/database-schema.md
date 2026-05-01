@@ -15,7 +15,7 @@ This document explains the baseline tables in `database/schema.sql`.
 
 Represents a local user of the app.
 
-- **Columns**: `email` (unique), optional `display_name`, optional `timezone`
+- **Columns**: `email` (unique), `password_hash` (bcrypt string; nullable for seed/demo), optional `display_name`, optional `timezone`
 - **Indexes**: unique `email`
 
 #### 2) `target_companies`

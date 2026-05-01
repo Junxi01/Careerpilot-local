@@ -38,6 +38,21 @@ docker compose exec mysql mysql -u careerpilot -pcareerpilot_password careerpilo
 - AI supports real-provider mode + mock mode for local testing
 - Only support user-configured **public** company career pages (no LinkedIn/Indeed/Glassdoor/login-required sites)
 
+### Backend (current)
+
+The backend already includes a minimal, working baseline:
+
+- Health/version:
+  - `GET /health`
+  - `GET /api/version`
+  - `GET /health/db` (returns `503` when DB is unreachable)
+- Auth (JWT):
+  - `POST /api/auth/register`
+  - `POST /api/auth/login`
+  - `GET /api/me` (requires `Authorization: Bearer <token>`)
+
+See `backend/README.md` for run commands and examples.
+
 ### Folder structure
 
 ```

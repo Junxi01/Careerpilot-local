@@ -46,8 +46,8 @@ Self-hosted、本地优先的 **AI 求职助手**：用户配置目标公司、*
 ### 已完成（脚手架）
 
 - 目录结构：`backend/`、`frontend/`、`scripts/`、`database/`、`docs/`
-- 后端：最小可运行 Ktor 应用；仅 **占位路由** `/`、`/api/scaffold`（GET/POST），用于验证 Gradle/运行；单元测试：`backend/src/test/.../ScaffoldTest.kt`
-- 前端：最小页面 `frontend/src/App.tsx`，无明显业务/API 集成
+- 后端：Ktor 应用可运行，已提供基础 API 形态（见下方 Day 5/6）
+- 前端：最小页面 `frontend/src/App.tsx`，尚无业务/API 集成（仅展示 `VITE_API_BASE_URL` 占位）
 - 配置：`/.env.example`（MySQL/后端端口/前端 `VITE_API_BASE_URL`/AI 占位）
 - 文档：`README.md`（产品与技术说明）、`docs/architecture.md`（简要架构意图）
 
@@ -64,22 +64,39 @@ Self-hosted、本地优先的 **AI 求职助手**：用户配置目标公司、*
 - `database/seed.sql`：1 个 demo 用户、2 个 target companies、3 条 job leads
 - `docs/database-schema.md`：逐表说明与字段约定
 
+### Day 5 — 后端接入 MySQL（已完成）
+
+- 后端已接入 **HikariCP + MySQL JDBC**：`backend/src/main/kotlin/com/careerpilot/db/DatabaseModule.kt`
+- `DB_*` 环境变量读取与可选 `DB_JDBC_URL` 覆盖（测试用）
+- `GET /health/db`：最小 DB 连通性验证（SELECT 1），失败时返回 `503` 且给出归类后的错误码
+
+### Day 6 — 基础认证（JWT）（已完成）
+
+- 认证接口：
+  - `POST /api/auth/register`
+  - `POST /api/auth/login`
+  - `GET /api/me`（Bearer JWT）
+- BCrypt 密码哈希：`backend/src/main/kotlin/com/careerpilot/auth/PasswordHasher.kt`
+- JWT 必要配置：`JWT_SECRET` **必须显式配置**（为空或默认 `change-me...` 将拒绝启动）
+
 ### 未实现 / 占位（业务与基础设施）
 
 - **无**真实领域模型 API（CRUD/业务规则）
-- **无**后端连接 MySQL（JDBC/连接池/迁移；Day 4 仅读取 DB 配置，不连接）
-- **无** Compose 中的 backend / frontend 服务
+- **无**后端迁移工具（Flyway/Liquibase）；当前策略为外部初始化（Compose MySQL init 脚本）
+- **无** Compose 中的 backend / frontend 服务（目前 Compose 仅 MySQL）
 - **无** Python 抓取/定时等脚本逻辑
 - **无** AI 提供商集成与 mock 模式的具体实现（`.env.example` 仅预留变量）
 
 ### 最近一次会话交接（模板：每次收尾覆写本小节）
 
-- **日期**：2026-04-29（示例：按你本地收尾日更新）
-- **本次完成**：Day 2 — Docker Compose + MySQL：Compose、`schema.sql` 八表、`.env.example`、README 验证命令
-- **未完成 / 阻塞**：后端未接库；若修改 `MYSQL_DATABASE` 需同步改 `schema.sql` 中 `USE \`…\``  
-- **关键路径 / 涉及文件**：`docker-compose.yml`, `database/schema.sql`, `.env.example`
-- **已运行验证**：以本机 `docker compose up -d` + `SHOW TABLES` 为准（CI/Agent 环境可能无 Docker）
-- **给下一对话的一句话**：优先把 **Ktor 后端接入 MySQL**（或在 Compose 中加入 backend 服务并连 `DB_*`）。
+- **日期**：2026-05-01
+- **本次完成**：文档与代码对齐：确认后端已具备 Day 5（MySQL 连接池 + `/health/db`）与 Day 6（JWT 注册/登录/Me）最小闭环，并更新 `PROJECT_CONTEXT.md` 的进度/缺口/下一步
+- **未完成 / 阻塞**：
+  - Compose 尚未加入 backend/frontend 服务；`DB_HOST` 在“宿主机跑后端”和“容器内跑后端”两种模式下取值不同（`localhost` vs `mysql`）
+  - 领域模型（companies/leads/applications 等）仍未落地 API
+- **关键路径 / 涉及文件**：`PROJECT_CONTEXT.md`, `backend/src/main/kotlin/com/careerpilot/Application.kt`, `backend/src/main/kotlin/com/careerpilot/db/DatabaseModule.kt`, `backend/src/main/kotlin/com/careerpilot/auth/*`, `docker-compose.yml`, `.env.example`
+- **已运行验证**：代码内已有后端测试覆盖 auth 流程（H2, MySQL mode）；DB 健康检查失败时应返回 `503`
+- **给下一对话的一句话**：优先落地第一批领域 API（例如 `target_companies` / `job_leads` 列表与创建），并把 backend 作为 Compose 服务接到 MySQL。
 
 ---
 
